@@ -13,8 +13,5 @@ A content-based book recommendation system using TF-IDF vectorization and cosine
 
 ## Quick Start
 
-- For Local Setup
-LocalDeploymentGuide.md
-
-- For Docker Setup
-DockerDeploymentGuide.md
+- For Local Setup: [Local Deployment Guide](./LocalDeploymentGuide.md)
+- For Docker Setup: [Docker Deployment Guide](./DockerDeploymentGuide.md)
