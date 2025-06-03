@@ -297,11 +297,37 @@ async def get_top_rated_books(
             detail=f"Error processing top-rated books: {str(e)}"
         )
 
+@router.get("/books/{book_id}/genres", response_model=List[str])
+async def get_genres_by_book_id(book_id: int):
+    """Get genres for a specific book by its ID"""
+    df_books, _, _, _ = get_model_components()
+
+    if df_books is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+
+    # Find the row matching the book ID
+    book_row = df_books[df_books['bookId'] == book_id]
+
+    if book_row.empty:
+        raise HTTPException(status_code=404, detail=f"Book with ID {book_id} not found")
+
+    # Check which column contains genre list
+    if 'genres_list' in book_row.columns and not pd.isna(book_row.iloc[0]['genres_list']):
+        genres = book_row.iloc[0]['genres_list']
+        if isinstance(genres, str):
+            genres = safe_parse_genres(genres)
+        return genres if isinstance(genres, list) else []
+
+    elif 'genres' in book_row.columns and not pd.isna(book_row.iloc[0]['genres']):
+        genres = safe_parse_genres(book_row.iloc[0]['genres'])
+        return genres if genres else []
+
+    raise HTTPException(status_code=404, detail=f"Genres not found for book ID {book_id}")
+
 @router.get("/books/genres", response_model=List[str])
 async def get_all_genres():
     """Get list of all available genres"""
     df_books, _, _, _ = get_model_components()
-    
     if df_books is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
     

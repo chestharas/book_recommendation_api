@@ -25,15 +25,18 @@ pip install -r requirements.txt
 
 ### Step 2: Prepare Data
 ```bash
-# Make sure your books.csv is in the data/ folder
-# Your structure should be:
-# BOOK_RECOMMENDATION_API/
-# ├── data/
-# │   └── books.csv  # <-- Your dataset here
-# └── ...
+# Option 1: Using the Automation scripts to get the data and the model
+python api/get_models.py
+# If you use this scripts skip Step 3.
+
+# Option 2: Using the scrape_link.py and then scrape_book.py
+python scrape/scrape_link.py
+python scrape/scrape_bbok.py
 ```
 
 ### Step 3: Train Model
+
+
 ```bash
 # Option 1: Using the training script directly
 python models/train_model.py
@@ -102,7 +105,7 @@ pip install scikit-learn==1.6.1
 #### Issue 4: Port Already in Use
 ```bash
 # Use different port
-uvicorn api.main:app --host 0.0.0.0 --port 8001
+uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 # Or kill process using port 8000
 # Windows:
