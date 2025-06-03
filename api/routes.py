@@ -222,6 +222,141 @@ async def filter_books(
     
     return books_list
 
+# @router.get("/search/books", response_model=List[BookInfo])
+# async def search_books(
+#     q: str = Query(..., min_length=1),
+#     limit: int = Query(20, ge=1, le=100),
+#     skip: int = Query(0, ge=0)
+# ):
+#     """Search books by title or author"""
+#     df_books, _, _, _ = get_model_components()
+
+#     if df_books is None:
+#         raise HTTPException(status_code=500, detail="Model not loaded")
+
+#     q_lower = q.lower()
+
+#     if 'title_lower' not in df_books.columns or 'author_lower' not in df_books.columns:
+#         raise HTTPException(status_code=500, detail="Lowercase columns not prepared")
+
+#     mask = (
+#         df_books['title_lower'].str.contains(q_lower, na=False) |
+#         df_books['author_lower'].str.contains(q_lower, na=False)
+#     )
+
+#     search_results = df_books[mask].iloc[skip:skip+limit]
+
+#     return [create_book_info(row) for _, row in search_results.iterrows()]
+
+@router.get("/search/books", response_model=List[BookInfo])
+async def search_books_by_title(
+    q: str = Query(..., min_length=1, description="Search query for book title"),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0)
+):
+    """Search books by title only (case-insensitive)"""
+    try:
+        df_books, _, _, _ = get_model_components()
+
+        if df_books is None:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+
+        if df_books.empty:
+            raise HTTPException(status_code=500, detail="No books data available")
+
+        if 'title' not in df_books.columns:
+            raise HTTPException(status_code=500, detail="Title column not available")
+
+        # Clean and prepare the search query
+        query_clean = q.strip().lower()
+        if not query_clean:
+            raise HTTPException(status_code=400, detail="Search query cannot be empty")
+
+        print(f"Searching for: '{query_clean}'")
+        print(f"Total books in dataset: {len(df_books)}")
+
+        # Create mask for case-insensitive search
+        # Handle potential NaN values in title column
+        mask = df_books['title'].fillna('').str.lower().str.contains(query_clean, na=False, regex=False)
+        
+        # Get filtered results
+        filtered_books = df_books[mask]
+        print(f"Books matching search: {len(filtered_books)}")
+
+        # Apply pagination
+        results = filtered_books.iloc[skip:skip + limit]
+        print(f"Returning {len(results)} books (skip={skip}, limit={limit})")
+
+        # Convert to BookInfo objects
+        book_list = []
+        for _, row in results.iterrows():
+            try:
+                book_info = create_book_info(row)
+                book_list.append(book_info)
+            except Exception as e:
+                print(f"Error creating book info for row: {e}")
+                continue
+
+        return book_list
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in search: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+# Optional: Add a more flexible search that includes author and description
+@router.get("/search/books/advanced", response_model=List[BookInfo])
+async def advanced_search_books(
+    q: str = Query(..., min_length=1, description="Search query"),
+    search_fields: str = Query("title,authors", description="Comma-separated fields to search in"),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0)
+):
+    """Advanced search across multiple fields"""
+    try:
+        df_books, _, _, _ = get_model_components()
+
+        if df_books is None:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+
+        query_clean = q.strip().lower()
+        if not query_clean:
+            raise HTTPException(status_code=400, detail="Search query cannot be empty")
+
+        # Parse search fields
+        fields = [field.strip() for field in search_fields.split(',')]
+        available_fields = ['title', 'authors', 'description', 'genres']
+        valid_fields = [f for f in fields if f in available_fields and f in df_books.columns]
+
+        if not valid_fields:
+            raise HTTPException(status_code=400, detail=f"No valid search fields. Available: {available_fields}")
+
+        # Create combined search mask
+        masks = []
+        for field in valid_fields:
+            field_mask = df_books[field].fillna('').str.lower().str.contains(query_clean, na=False, regex=False)
+            masks.append(field_mask)
+
+        # Combine masks with OR logic
+        combined_mask = masks[0]
+        for mask in masks[1:]:
+            combined_mask = combined_mask | mask
+
+        # Get results
+        filtered_books = df_books[combined_mask]
+        results = filtered_books.iloc[skip:skip + limit]
+
+        return [create_book_info(row) for _, row in results.iterrows()]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in advanced search: {e}")
+        raise HTTPException(status_code=500, detail=f"Advanced search failed: {str(e)}")
+    
+    
 @router.get("/books/top-rated", response_model=List[BookInfo])
 async def get_top_rated_books(
     min_ratings: int = Query(10, ge=1, description="Minimum number of ratings required"),
