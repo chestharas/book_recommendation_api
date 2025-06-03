@@ -8,7 +8,7 @@ from scipy.sparse import save_npz, load_npz # For saving/loading sparse matrices
 from pathlib import Path
 
 # --- Constants for filenames ---
-BASE_DIR = Path(__file__).parent.parent  # Go up one level from models/ to project root
+BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / 'data'
 MODEL_OUTPUT_DIR = BASE_DIR / 'saved_model_components'
 
