@@ -24,6 +24,8 @@ class RecommendationResponse(BaseModel):
 
 class BookInfo(BaseModel):
     """Model for book information"""
+    model_config = {"protected_namespaces": ()}  # Fix Pydantic warning
+    
     bookId: str = Field(..., description="Unique book identifier")
     title: str = Field(..., description="Book title")
     author: str = Field(..., description="Book author")
@@ -49,6 +51,8 @@ class RecommendationRequest(BaseModel):
 # --- Status Models ---
 class HealthResponse(BaseModel):
     """Health check response model"""
+    model_config = {"protected_namespaces": ()}  # Fix Pydantic warning
+    
     status: str = Field(..., description="Service status (healthy/unhealthy)")
     model_loaded: bool = Field(..., description="Whether the ML model is loaded")
     total_books: int = Field(..., ge=0, description="Total number of books in the dataset")
@@ -79,7 +83,8 @@ class BookFilterRequest(BaseModel):
 class SortOption(BaseModel):
     """Sorting options for book lists"""
     field: str = Field("title", description="Field to sort by")
-    order: str = Field("asc", regex="^(asc|desc)$", description="Sort order: asc or desc")
+    order: str = Field("asc", pattern="^(asc|desc)$", description="Sort order: asc or desc")
+
 class PaginationParams(BaseModel):
     """Pagination parameters"""
     skip: int = Field(0, ge=0, description="Number of items to skip")
